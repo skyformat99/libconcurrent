@@ -10,12 +10,11 @@ UNAME=uname
 
 .SUFFIXES: .c .a .o .h .asm
 .PHONY: clean help
-.PHONY: win32_lib
-.PHONY: sample test
+.PHONY: examples test
 .PHONY: install
-.VPATH: ./ ./source ./source/arch/i386 ./source/arch/x86_64
+.VPATH: ./ ./src ./src/arch/i386 ./src/arch/x86_64
 
-VERSION=0.3.0
+VERSION=0.4.0
 
 ifeq ($(ARCH),)
  ARCH=$(shell $(UNAME) -m)
@@ -64,15 +63,10 @@ else
 endif
 
 
-ifeq ($(DESTDIR),)
-  DESTDIR=./pkg
-endif
-
-CFLAGS+=-DCONCURRENT_HAS_BUILD_CONFIG # ./concurrent_build_config.h
-CFLAGS+=-DCONCURRENT_ARCH_NAME='"$(ARCH)"'
 CFLAGS+=-Wall
-CFLAGS+=-std=c99
+CFLAGS+=-std=c11
 CFLAGS+=-Wstrict-aliasing
+CFLAGS+=-fno-stack-protector  # for Ubuntu gcc patch
 
 ifeq ($(DEBUG),yes)
  CFLAGS+=-DCONCURRENT_DEBUG
@@ -84,44 +78,42 @@ endif
 LDFLAGS+=--version-exports-section="$(VERSION)"
 
 
-TARGET_STATIC=libconcurrent.a
+TARGET=libconcurrent.a
 INCDIR+=-I.
 INCDIR+=-I./include
-INCDIR+=-I./source
+INCDIR+=-I./src
 
-SOURCE_ARCH=source/arch/$(ARCH)/concurrent_arch.asm
-OBJECT_ARCH=source/arch/$(ARCH)/concurrent_arch.o
+SOURCE_ARCH=src/arch/$(ARCH)/concurrent_arch.asm
+OBJECT_ARCH=src/arch/$(ARCH)/concurrent_arch.o
 
-SOURCE+=source/concurrent.c
-OBJECT=$(subst .c,.o, $(SOURCE))
+SOURCE+=src/concurrent.c
+OBJECT+=$(subst .c,.o, $(SOURCE))
 OBJECT+=$(OBJECT_ARCH)
 
-all: $(TARGET_STATIC)
+all: $(TARGET)
 
-win32_lib: $(TARGET_STATIC)
+examples: $(TARGET)
+	make -C examples
 
-sample: $(TARGET_STATIC)
-	make -C sample
-
-test: $(TARGET_STATIC)
+test: $(TARGET)
 	make -C test
 
-$(TARGET_STATIC): $(OBJECT)
-	$(AR) crv $(TARGET_STATIC) $(OBJECT)
+$(TARGET): $(OBJECT)
+	$(AR) crv $(TARGET) $(OBJECT)
 
 help:
-	@echo "clean help win32_lib sample"
+	@echo "clean help examples test"
 
-install: $(TARGET_STATIC)
+install: $(TARGET)
 	install -Dm644 libconcurrent.a $(DESTDIR)/usr/lib/libconcurrent.a
 	install -Dm644 include/concurrent/concurrent.h $(DESTDIR)/usr/include/concurrent/concurrent.h
-	install -Dm644 include/concurrent/short_lower_case_api.h $(DESTDIR)/usr/include/concurrent/short_lower_case_api.h
+	install -Dm644 include/concurrent/shortname.h $(DESTDIR)/usr/include/concurrent/shortname.h
 
 clean:
-	@make -C sample clean
+	@make -C examples clean
 	@make -C test clean
 	@rm -f $(OBJECT)
-	@rm -f $(TARGET_STATIC)
+	@rm -f $(TARGET)
 
 # suffix rule
 .c.o:
