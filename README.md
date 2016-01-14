@@ -29,7 +29,7 @@ tiny asymmetric-coroutine library.
 
 struct value { int a, b; };
 
-noreturn void accumlator(struct concurrent_ctx *ctx)
+noreturn void accumulator(struct concurrent_ctx *ctx)
 {
     struct value *v = ctx_get_resume_value(ctx);
     for (;;) {
@@ -45,7 +45,7 @@ int main(void)
     uint8_t ctx_alloc[ctx_sizeof()];
     concurrent_init();
     ctx = (struct concurrent_ctx *)ctx_alloc;
-    ctx_construct(ctx, stack, STACK_SIZE, accumlator, NULL);
+    ctx_construct(ctx, stack, STACK_SIZE, accumulator, NULL);
     for (int i = 0; i < 10; i++) {
         int a = i;
         int b = 10 - i;
@@ -75,8 +75,9 @@ $ ./sample
 */
 ```
 
-## Requirement for build
+## Requirements for build
 - nasm: http://www.nasm.us/
+- ... and of course GCC or clang
 
 
 ## Installation
@@ -94,6 +95,23 @@ $ make test
 
 ```
 
+## Benchmark
+
+[examples/many_context1.c](https://github.com/sharow/libconcurrent/blob/master/examples/many_context1.c):
+
+```
+-- output: (Xeon E3 2.5Ghz)
+3000000 context switch in 373.5 ms
+one context switch in 125 ns
+8031333 resume/yield pair per second
+
+
+-- output: (RaspberryPi2 ARMv7 900MHz)
+3000000 context switch in 2861.8 ms
+one context switch in 954 ns
+1048287 resume/yield pair per second
+```
+
 ## License
 [zlib](https://github.com/sharow/libconcurrent/blob/master/LICENSE)
 
@@ -109,3 +127,8 @@ $ make test
 + mill: https://github.com/sustrik/mill
 + fcontext: https://github.com/reginaldl/fcontext
 + libwire: https://github.com/baruch/libwire
++ coroutine(A asymmetric coroutine library for C): https://github.com/cloudwu/coroutine
++ coroutine(a asymmetric coroutine (lua like) with fixed-size stack): https://github.com/xphh/coroutine
++ coroutine(coroutine library with pthread-like interface in pure C): https://github.com/Marcus366/coroutine
++ coroutines(A lightweight coroutine library written in C and assembler): https://github.com/xya/coroutines
++ micro: https://github.com/mikewei/micoro

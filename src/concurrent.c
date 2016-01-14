@@ -27,24 +27,29 @@ typedef enum {
 
 struct concurrent_ctx {
     concurrent_proc proc;
+    void *user_ptr;
     uint8_t *stack_buffer;
     size_t stack_size;
-    void *user_ptr;
     size_t stack_base;
     size_t stack_ptr;
-    void *caller_return_addr;
     concurrent_state state;
+    void *caller_return_addr;
     void *yield_value;
     void *resume_value;
 };
 
 
-static void concurrent_setup_execution_context(struct concurrent_ctx *ctx);
-
 noreturn static void
 panic(void)
 {
     abort();
+}
+
+static void
+concurrent_setup_execution_context(struct concurrent_ctx *ctx)
+{
+    ctx->stack_ptr = ctx->stack_base;
+    concurrent_arch_setup_execution_context(ctx);
 }
 
 
@@ -85,11 +90,11 @@ concurrent_construct(struct concurrent_ctx *ctx,
     ctx->proc = proc;
     ctx->user_ptr = user_ptr;
     ctx->stack_buffer = (uint8_t *)((size_t)(stack_buffer + 15) & ~15);
-    ctx->stack_size = (stack_size + stack_buffer - ctx->stack_buffer) & ~15;
+    ctx->stack_size = (stack_size + (size_t)(stack_buffer - ctx->stack_buffer)) & ~15;
     ctx->stack_base = (size_t)(ctx->stack_buffer + ctx->stack_size);
     ctx->stack_ptr = 0;
-    ctx->caller_return_addr = NULL;
     ctx->state = CONCURRENT_STATE_SETUP;
+    ctx->caller_return_addr = NULL;
     ctx->yield_value = NULL;
     ctx->resume_value = NULL;
     return CONCURRENT_SUCCESS;
@@ -104,8 +109,8 @@ concurrent_destruct(struct concurrent_ctx *ctx)
     ctx->stack_size = 0;
     ctx->stack_base = 0;
     ctx->stack_ptr = 0;
-    ctx->caller_return_addr = NULL;
     ctx->state = CONCURRENT_STATE_DONE;
+    ctx->caller_return_addr = NULL;
     ctx->yield_value = NULL;
     ctx->resume_value = NULL;
 }
@@ -143,6 +148,7 @@ concurrent_resume(struct concurrent_ctx *ctx)
 {
     return concurrent_resume_with_value(ctx, NULL);
 }
+
 void *
 concurrent_get_resume_value(struct concurrent_ctx *ctx)
 {
@@ -152,10 +158,10 @@ concurrent_get_resume_value(struct concurrent_ctx *ctx)
 void *
 concurrent_yield_with_value(struct concurrent_ctx *ctx, void *value)
 {
-    ctx->yield_value = value;
     if (ctx->state != CONCURRENT_STATE_EXECUTE) {
         panic();
     }
+    ctx->yield_value = value;
     ctx->state = CONCURRENT_STATE_YIELD;
     concurrent_arch_trampoline_to_caller(ctx);
     return ctx->resume_value;
@@ -206,9 +212,3 @@ concurrent_get_stack_used(struct concurrent_ctx *ctx)
     return (size_t)(ctx->stack_base - ctx->stack_ptr);
 }
 
-static void
-concurrent_setup_execution_context(struct concurrent_ctx *ctx)
-{
-    ctx->stack_ptr = ctx->stack_base;
-    concurrent_arch_setup_execution_context(ctx);
-}
