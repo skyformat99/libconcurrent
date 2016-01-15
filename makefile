@@ -1,6 +1,6 @@
 #
 #  libconcurrent
-#  Copyright (C) 2010-2014 MIURA Shirow (sharow)
+#  Copyright (C) 2010-2016 sharow
 #
 
 CC=$(PREFIX)gcc
@@ -10,8 +10,8 @@ UNAME=uname
 
 .SUFFIXES: .c .a .o .h .asm
 .PHONY: clean help
-.PHONY: examples test
-.PHONY: install
+.PHONY: examples example sample test
+.PHONY: install uninstall
 .VPATH: ./ ./src ./src/arch/i386 ./src/arch/x86_64
 
 VERSION=0.4.0
@@ -25,12 +25,7 @@ ifeq ($(SYSTEM),)
 endif
 
 NASM_FLAGS=
-ifeq ($(SYSTEM),Cygwin)
- NASM_FLAGS+=-f win$(ARCH_BITS)
- ifeq ($(ARCH),i686)
-  NASM_FLAGS+=--prefix _
- endif
-else ifeq ($(SYSTEM),Msys)
+ifeq ($(findstring true, $(eq $(SYSTEM),Cygwin), $(eq $(SYSTEM),MSys)), true)
  NASM_FLAGS+=-f win$(ARCH_BITS)
  ifeq ($(ARCH),i686)
   NASM_FLAGS+=--prefix _
@@ -62,6 +57,22 @@ else
  ARCH_BITS=32
 endif
 
+# FreeBSD has its own uname -m style
+ifeq ($(SYSTEM),FreeBSD)
+ CC=cc
+ LD=ld
+ ifeq ($(ARCH),amd64)
+  ARCH=x86_64
+  ARCH_BITS=64
+ else ifeq ($(ARCH),i386)
+  ARCH=i686
+  ARCH_BITS=32
+ else ifeq ($(ARCH),arm) # arm not tested, just a guess
+  ARCH_BITS=32
+  AS=as
+  ASFLAGS=
+ endif
+endif
 
 CFLAGS+=-Wall
 CFLAGS+=-std=c11
@@ -74,8 +85,6 @@ ifeq ($(DEBUG),yes)
 else
  CFLAGS+=-O2
 endif
-
-LDFLAGS+=--version-exports-section="$(VERSION)"
 
 
 TARGET=libconcurrent.a
@@ -92,26 +101,35 @@ OBJECT+=$(OBJECT_ARCH)
 
 all: $(TARGET)
 
+
+example: examples
+sample: examples
 examples: $(TARGET)
-	make -C examples
+	$(MAKE) -C examples
 
 test: $(TARGET)
-	make -C test
+	$(MAKE) -C test
 
 $(TARGET): $(OBJECT)
 	$(AR) crv $(TARGET) $(OBJECT)
 
 help:
-	@echo "clean help examples test"
+	@echo "make [clean|help|examples|test|install|uninstall]"
 
 install: $(TARGET)
 	install -Dm644 libconcurrent.a $(DESTDIR)/usr/lib/libconcurrent.a
 	install -Dm644 include/concurrent/concurrent.h $(DESTDIR)/usr/include/concurrent/concurrent.h
 	install -Dm644 include/concurrent/shortname.h $(DESTDIR)/usr/include/concurrent/shortname.h
 
+uninstall:
+	rm $(DESTDIR)/usr/lib/libconcurrent.a
+	rm $(DESTDIR)/usr/include/concurrent/concurrent.h
+	rm $(DESTDIR)/usr/include/concurrent/shortname.h
+	rmdir $(DESTDIR)/usr/include/concurrent
+
 clean:
-	@make -C examples clean
-	@make -C test clean
+	@$(MAKE) -C examples clean
+	@$(MAKE) -C test clean
 	@rm -f $(OBJECT)
 	@rm -f $(TARGET)
 
@@ -122,7 +140,6 @@ clean:
 .asm.o:
 	$(AS) $(ASFLAGS) $< -o $@
 
-#depend
 depend:
 	$(RM) -f depend.inc
 	$(CC) $(CFLAGS) $(INCDIR) -MM $(SOURCE) > depend.inc

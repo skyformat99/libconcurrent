@@ -1,5 +1,7 @@
 libconcurrent
 =============
+[![zlib License](http://img.shields.io/badge/license-zlib-orange.svg?style=flat-square)](https://github.com/sharow/libconcurrent/blob/master/LICENSE)
+
 
 tiny asymmetric-coroutine library.
 
@@ -8,10 +10,13 @@ tiny asymmetric-coroutine library.
 + ~~generator~~ bidirectional communication with `yield_value`/`resume_value`
 + native context switch
 + ~~avoid another-lib dependency~~ C11
-+ platform
- + Linux i686, X86_64, ARMv6(RaspberryPi), ARMv7(RaspberryPi2)
- + Windows i686 (mingw only)
 
+## Supported Platforms
+|         | x86_64                   | i686               | ARM(v6/v7)               | note             |
+|---------|--------------------------|--------------------|--------------------------|------------------|
+| Linux   | :heavy_check_mark:       | :heavy_check_mark: | :heavy_check_mark:       |                  |
+| FreeBSD | :heavy_check_mark:       | :heavy_check_mark: | :question:               |Thanks [@t6](https://github.com/t6)|
+| Windows | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | use MSys2/Cygwin |
 
 ## Code Example
 
@@ -77,12 +82,11 @@ $ ./sample
 
 ## Requirements for build
 - nasm: http://www.nasm.us/
-- ... and of course GCC or clang
 
 
 ## Installation
 ```
-$ git clone git@github.com:sharow/libconcurrent.git libconcurrent
+$ git clone https://github.com/sharow/libconcurrent.git libconcurrent
 $ cd libconcurrent
 $ make
 $ sudo make install
@@ -111,9 +115,6 @@ one context switch in 125 ns
 one context switch in 954 ns
 1048287 resume/yield pair per second
 ```
-
-## License
-[zlib](https://github.com/sharow/libconcurrent/blob/master/LICENSE)
 
 
 ## VS. 
